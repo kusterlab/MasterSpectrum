@@ -64,7 +64,7 @@ Third argument => aggregation take **not** care of precursor charge
 |---------------------	|-------------------------------------------------------------------------------------	|
 | mz                  	| mz of the aggregated MasterPeak                                                     	|
 | intensity           	| intensity weighted m/z average of all peaks                                         	|
-|                     	| number of aggregated peaks in a MasterPeak                                          	|
+| counts               	| number of aggregated peaks in a MasterPeak                                          	|
 | left border         	| left border of MasterPeak                                                           	|
 | right border        	| right border of MasterPeak                                                          	|
 | start_mz            	| original mz value of the first peak in a MasterPeak (to investigate drift of peaks) 	|
