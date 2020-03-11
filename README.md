@@ -33,7 +33,7 @@ takes about 20 seconds. After all a code coverage of about 82 % was achieved.
 # Installation
 The package is not (yet) pushed to Pypi, but it is easily installable via pip (requires a up-to-date pip version `pip install -U pip`)
 ```
-pip install -e git+https://github.com/kusterlab/MasterSpectrum.git@v1.0#egg=mgf_filter
+pip install git+https://github.com/kusterlab/MasterSpectrum.git@v1.0#egg=mgf_filter
 ```
 
 ## Platform Dependency
