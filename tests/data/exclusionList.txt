@@ -1,0 +1,3 @@
+mz, comment, position
+176.309174,test_exclusion,absolute
+229,tag loss,precursor

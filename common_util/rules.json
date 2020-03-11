@@ -1,0 +1,163 @@
+{
+  "S": [
+    {
+      "losses": [
+        "H3PO4",
+        "HPO3"
+      ],
+      "annotation": "phospho"
+    },
+    {
+      "losses": [
+        "H2O",
+        "CH4O"
+      ],
+      "annotation": "standard"
+    }
+  ],
+  "T": [
+    {
+      "losses": [
+        "H3PO4",
+        "HPO3"
+      ],
+      "annotation": "phospho"
+    },
+    {
+      "losses": [
+        "H2O",
+        "C2H4O"
+      ],
+      "annotation": "standard"
+    }
+  ],
+  "Y": [
+    {
+      "losses": [
+        "H3PO4",
+        "HPO3"
+      ],
+      "annotation": "standard"
+    }
+  ],
+  "C": [
+    {
+      "losses": [
+        "CH2S"
+      ],
+      "annotation": "standard"
+    }
+  ],
+  "D": [
+    {
+      "losses": [
+        "H20",
+        "CO2",
+        "C2H4O2"
+      ],
+      "annotation": "standard"
+    }
+  ],
+  "E": [
+    {
+      "losses": [
+        "H2O",
+        "C2H4O2"
+      ],
+      "annotation": "standard"
+    }
+  ],
+  "I": [
+    {
+      "losses": [
+        "C2H4"
+      ],
+      "annotation": "standard"
+    }
+  ],
+  "K": [
+    {
+      "losses": [
+        "C2H5N", 
+	"C4H9N",
+        "C4H11N",
+        "C3H9N"
+      ],
+      "annotation": "standard"
+    }
+  ],
+  "L": [
+    {
+      "losses": [
+        "C3H6",
+        "C4H8"
+      ],
+      "annotation": "standard"
+    }
+  ],
+  "M": [
+    {
+      "losses": [
+        "C2H4S", 
+	"C3H6S"
+      ],
+      "annotation": "standard"
+    },
+    {
+      "losses": [
+        "CH4SO",
+        "C3H8SO",
+        "C3H6SO"
+      ],
+      "annotation": "oxidation"
+    }
+  ],
+  "N": [
+    {
+      "losses": [
+        "NH3",
+        "CH3NO",
+        "C2H5NO"
+      ],
+      "annotation": "standard"
+    }
+  ],
+  "Q": [
+    {
+      "losses": [
+        "NH3",
+        "CH3NO",
+        "C2H5NO",
+        "C3H5NO"
+      ],
+      "annotation": "standard"
+    }
+  ],
+  "R": [
+    {
+      "losses": [
+        "NH3",
+        "CH2N2",
+        "C3H9N3"
+      ],
+      "annotation": "standard"
+    }
+  ],
+  "V": [
+    {
+      "losses": [
+        "C3H6"
+      ],
+      "annotation": "standard"
+    }
+  ],
+  "W": [
+    {
+      "losses": [
+        "C8H7N",
+        "C9H9N"
+      ],
+      "annotation": "standard"
+    }
+  ]
+}

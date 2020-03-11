@@ -1,0 +1,259 @@
+#!/usr/bin/env python
+from mgf_filter.apl2Mgf import Apl2Mgf
+from mgf_filter.util import calculate_Delta_by_ppm
+import logging
+import time
+from mgf_filter.mgfPatcher import MgfPatcher
+from mgf_filter.bruteForcePatcher import BruteForcePatcher
+from mgf_filter.masterSpectrum import MasterSpectrum
+import argparse
+import os
+from mgf_filter.util import timeStamped
+from mgf_filter.pepXmlExtractor import Extractor
+from mgf_filter.precursorDeltaPeaksExtractor import PrecursorDeltaPeaksExtractor
+from mgf_filter.perfectSpectra import GeneratorForPerfectSpectra
+from mgf_filter.mgfSeperator import MgfSeperator
+from mgf_filter.deltaExtractor import DeltaExtractor
+from mgf_filter.reinstateMgf import ReinstateMgf
+from mgf_filter.deltaPatcher import DeltaPatcher
+
+logging.basicConfig(format='%(asctime)s %(name)-12s %(levelname)-8s %(message)scustom_log',
+                    datefmt='%m-%d %H:%M',
+                    filename='stuff.log',
+                    filemode='a')
+log = logging.getLogger('__main__')
+log.setLevel(logging.DEBUG)
+
+
+# @log_with()     # user specified logger
+def binning(inp, output, ignoreCharges):
+    ms = MasterSpectrum()
+    stime = int(round(time.time() * 1000))
+    if ignoreCharges:
+        folder_out = timeStamped('binned_ignoredCharges')
+    else:
+        folder_out = timeStamped('binned_byCharges')
+    os.makedirs(output + folder_out)
+    ms.load_from_mgf(inp, ignoreCharges)
+    file_name = os.path.splitext(os.path.basename(inp))[0]
+    ms.export_to_csv(output + folder_out + '/' + file_name + '.csv')
+    print("total:", ((int(round(time.time() * 1000)) - stime) / 1000.0))
+    ms.printStats()
+
+
+# @log_with()     # user specified logger
+def folding(inp, output):
+    ms = MasterSpectrum()
+    ms.load_from_csv(inp[0])
+    ms2 = MasterSpectrum()
+    ms2.load_from_csv(inp[1])
+    folder_out = timeStamped('folded')
+    os.makedirs(output + folder_out)
+    ms3 = ms.compare_other_ms(ms2)
+    ms3.export_to_csv(output + folder_out + '/stuff.csv')
+
+
+# @log_with()     # user specified logger
+def patching(input, exclusionList, out_dir):
+    # folder_out = timeStamped('patched')
+    # os.makedirs(out_dir + folder_out)
+    file_name = os.path.splitext(os.path.basename(input))[0]
+    exclusionListsN = ''
+    for i in exclusionList:
+        exclusionListsN += '_' + os.path.splitext(os.path.basename(i))[0]
+
+    mgfP = MgfPatcher()
+    for ex in exclusionList:
+        print(ex)
+        mgfP.readExclusionList(ex)
+    output = out_dir + '/' + file_name + exclusionListsN + '_patched.mgf'
+    print(output)
+    mgfP.patchMgf(input, output)
+
+
+# @log_with()     # user specified logger
+def bruteForcePatching(input, out_dir):
+    folder_out = timeStamped('bruteforce_patched')
+    os.makedirs(out_dir + folder_out)
+    file_name = os.path.splitext(os.path.basename(input))[0]
+    mgfP = BruteForcePatcher()
+    mgfP.patchMgf(input, out_dir + folder_out + '/' + file_name + '_bruteforce_patched.mgf')
+
+
+# @log_with()     # user specified logger
+def extractingPepXml(input, out_dir):
+    folder_out = timeStamped('extracted')
+    os.makedirs(out_dir + folder_out)
+    file_name = os.path.splitext(os.path.basename(input))[0]
+    pepExtractor = Extractor(input)
+    pepExtractor.digest_pepxml()
+    pepExtractor.write_csv_output(out_dir + folder_out + '/' + file_name + '_pep.csv')
+
+
+# @log_with()     # user specified logger
+def generateBinnedPrecursorDeltaMasterSpectrum(input, out_dir):
+    folder_out = timeStamped('precursorDeltaSpectrum')
+    os.makedirs(out_dir + folder_out)
+    file_name = os.path.splitext(os.path.basename(input))[0]
+    preCursorDeltaEx = PrecursorDeltaPeaksExtractor(input)
+    preCursorDeltaEx.createDeltaPrecursorMasterSpectrum()
+    preCursorDeltaEx.exportCsv(out_dir + folder_out + '/' + file_name + '_precursorDeltaMS.csv')
+
+
+# @log_with()     # user specified logger
+def generateMascotExclusion(out_dir, length, additional_mass):
+    folder_out = timeStamped('mascotExclusion')
+    os.makedirs(out_dir + folder_out)
+    gps = GeneratorForPerfectSpectra()
+    gps.generateCrazyExclusionList(out_dir + folder_out + '/', length, additional_mass)
+
+
+# @log_with()     # user specified logger
+def seperateMgfs(pepXmlPath, mgfPath, out_dir, scoreCutoff):
+    folder_out = timeStamped('seperateMgfs_' + str(scoreCutoff))
+    os.makedirs(out_dir + folder_out)
+
+    folder_out_path = out_dir + folder_out + '/'
+    mgfsep = MgfSeperator(pepXmlPath, mgfPath, scoreCutoff)
+    mgfsep.getInfoFromPepXml()
+    mgfsep.seperateMgf(folder_out_path)
+
+
+# @log_with()     # user specified logger
+def generateBinnedAllDeltaMasterSpectrum(input, min_rel_intensity, out_dir):
+    folder_out = timeStamped('allDeltaSpectrum_' + str(min_rel_intensity))
+    os.makedirs(out_dir + folder_out)
+    file_name = os.path.splitext(os.path.basename(input))[0]
+    dEx = DeltaExtractor(input)
+    dEx.createDeltaMasterSpectrum(min_rel_intensity)
+    dEx.exportCsv(out_dir + folder_out + '/' + file_name + '_allDeltaMS.csv')
+
+
+def reInstateMgfToOriginal(patched, original, out_dir):
+    file_name = os.path.splitext(os.path.basename(patched))[0]
+    folder_out = timeStamped('reinstateMgf_' + file_name)
+    os.makedirs(out_dir + folder_out)
+    file_name_original = os.path.splitext(os.path.basename(original))[0]
+
+    rM = ReinstateMgf(patched,
+                      original)
+    rM.loadPatched()
+    rM.compare2original()
+    rM.writeMgf(out_dir + folder_out + '/' + file_name_original + ".mgf")
+
+
+def deleteAminoAcidDeltas(original, out_dir):
+    file_name = os.path.splitext(os.path.basename(original))[0]
+    folder_out = timeStamped('noAminoAcidDeltas_' + file_name)
+    output_dir = out_dir + folder_out
+    os.makedirs(output_dir)
+
+    gps = GeneratorForPerfectSpectra()
+    gps.generateAminoAcidDeltaList(output_dir + '/', 1, 0)
+
+    deltaP = DeltaPatcher(delta_func=calculate_Delta_by_ppm(20))
+    deltaP.readExclusionList(output_dir + "/exclusionListDelta_1_0.csv")
+    deltaP.patchDelta(input_path=original, output_path=output_dir + '/b.csv')
+
+
+def apl2mgf(apl_folder, out_dir):
+    file_name = os.path.splitext(os.path.basename(apl_folder))[0]
+    folder_out = timeStamped('apls2mgf_' + file_name)
+    output_dir = out_dir + folder_out
+    os.makedirs(output_dir)
+
+    output_mgf = output_dir + "/" + "out.mgf"
+    a2m = Apl2Mgf(apl_folder,
+                  output_mgf)
+    a2m.find_all_apl()
+    a2m.load_apls()
+    a2m.writeMgf()
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='mgf_filter')
+    subparsers = parser.add_subparsers(help='commands', dest='command')
+
+    binning_parser = subparsers.add_parser('create', help='takes an MGF files and creates a MasterSpectrum based on a 20 ppm window, it can ignore charges')
+    binning_parser.add_argument('input', help='MGF file')
+    binning_parser.add_argument('output_dir', help='output')
+    binning_parser.add_argument('ignoreCharges', help='bin all the things')
+
+    fold_parser = subparsers.add_parser('fold', help='it takes two MGF files and creates a relative spectrum between both runs based on a 20 ppm window. it cant ignore charges')
+    fold_parser.add_argument('input', nargs=2, help='MGF files, first will be the postive by folded')
+    fold_parser.add_argument('output_dir', help='dir')
+
+    patch_parser = subparsers.add_parser('patch', help='creates a MasterSpectrum based on 1-N exclusion lists')
+    patch_parser.add_argument('input', help='MGF file')
+    patch_parser.add_argument('exclusionList', nargs='+', help="List of exclusions")
+    patch_parser.add_argument('output_dir', help="dir for output")
+
+    bruteForcePatch_parser = subparsers.add_parser('bruteforce_patch', help='creates a MasterSpectrum similar to the already published results')
+    bruteForcePatch_parser.add_argument('--input', dest="input_mgf", help='MGF file', required=True)
+    bruteForcePatch_parser.add_argument('--output_dir', dest="output_dir", help="dir for output", required=True)
+
+    extract_parser = subparsers.add_parser('extract', help='extract important information from a pepxml')
+    extract_parser.add_argument('--input', dest="input_pepxml", help='pepxml', required=True)
+    extract_parser.add_argument('--output_dir', dest="output_dir", help="dir for output", required=True)
+
+    precursor_parser = subparsers.add_parser('precursor', help='generates a MasterSpectrum with m/z values relative to precursor value')
+    precursor_parser.add_argument('input', help='MGF file')
+    precursor_parser.add_argument('output_dir', help='dir for output')
+
+    pureSpectra_parser = subparsers.add_parser('mascotExclusion', help='delete peaks based on a provided peptide length and/or an additional mass')
+    pureSpectra_parser.add_argument('length', type=int, help='peptide length')
+    pureSpectra_parser.add_argument('additionalMass', type=float, help='additional mass')
+    pureSpectra_parser.add_argument('output_dir', help='dir for output')
+
+    seperateMgfs_parser = subparsers.add_parser('seperateMgfbyScore', help='generate two spectra seperated by a provided score cuttoff')
+    seperateMgfs_parser.add_argument('pepxml', help='pepxml path')
+    seperateMgfs_parser.add_argument('mgf', help='MGF file to seperate')
+    seperateMgfs_parser.add_argument('output_dir', help='output_dir path')
+    seperateMgfs_parser.add_argument('scoreCutoff', type=float, help='output_dir path')
+
+    delta_parser = subparsers.add_parser('allDelta', help='calculate all possible deltas given a minimal relative intensity')
+    delta_parser.add_argument('input', help='MGF file')
+    delta_parser.add_argument('min_rel_intensity', type=float, help='minimal rel intensity')
+    delta_parser.add_argument('output_dir', help='dir for output')
+
+    reinstate_parser = subparsers.add_parser('reinstate', help='takes two mgfs and reports difference in intensity world as a new MGF file')
+    reinstate_parser.add_argument('patched', help='MGF file')
+    reinstate_parser.add_argument('original', help='MGF file with third column')
+    reinstate_parser.add_argument('output_dir', help='dir for output')
+
+    patchDelta_parser = subparsers.add_parser('deleteAminoAcidDelta', help='takes a list of possible amino acid deltas and deletes such peaks in a MasterSpectrum')
+    patchDelta_parser.add_argument('original', help='deltastuff')
+    patchDelta_parser.add_argument('output_dir', help='dir for output')
+
+    apl2mgf_parser = subparsers.add_parser('apl', help='convert an folder full of apl files to a single MGF file')
+    apl2mgf_parser.add_argument('apl_folder', help='apl_folder')
+    apl2mgf_parser.add_argument('output_dir', help='dir for output')
+
+    args = parser.parse_args()
+
+    if args.command == 'create':
+        binning(args.input, args.output_dir, args.ignoreCharges)
+    elif args.command == 'fold':
+        folding(args.input, args.output_dir)
+    elif args.command == 'patch':
+        patching(args.input, args.exclusionList, args.output_dir)
+    elif args.command == 'bruteforce':
+        bruteForcePatching(args.input_mgf, args.output_dir)
+    elif args.command == 'extract':
+        extractingPepXml(args.input_pepxml, args.output_dir)
+    elif args.command == 'precursor':
+        generateBinnedPrecursorDeltaMasterSpectrum(args.input, args.output_dir)
+    elif args.command == 'mascotExclusion':
+        generateMascotExclusion(args.output_dir, args.length, args.additionalMass)
+    elif args.command == 'seperateMgf':
+        seperateMgfs(args.pepxml, args.mgf, args.output_dir, args.scoreCutoff)
+    elif args.command == 'allDelta':
+        generateBinnedAllDeltaMasterSpectrum(args.input, args.min_rel_intensity, args.output_dir)
+    elif args.command == 'reinstate':
+        reInstateMgfToOriginal(args.patched, args.original, args.output_dir)
+    elif args.command == 'patchDelta':
+        deleteAminoAcidDeltas(args.original, args.output_dir)
+    elif args.command == 'apl':
+        apl2mgf(args.apl_folder, args.output_dir)
+    else:
+        parser.print_help()
