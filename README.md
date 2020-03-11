@@ -2,7 +2,8 @@
 # MasterSpectrum
 This software was used for my master thesis in 2016. The aim was to find diagnostic ions and eventually remove them to improve identification of MS/MS spectra. It finally shined in 2018 as a tool to quickly find systematic side products of 21 post-translational protein modifications https://doi.org/10.1074/mcp.TIR118.000783.
 
-The original filtering option was also the reason for repository name *mgf_filter*
+The original filtering option was also the reason for repository name *mgf_filter*. The code for this tool can be cited via [![DOI](https://zenodo.org/badge/246573005.svg)](https://zenodo.org/badge/latestdoi/246573005)
+
 
 ## What is does?
 **MasterSpectrum** is a representation of one or more spectra and consists of MasterPeaks.
